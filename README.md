@@ -32,7 +32,7 @@ Sunrise/sunset are computed locally from a solar-position formula.
 
 Data-freshness gates apply (ROBN4 ob ≤2 h; forecast issuance ≤12 h). A stale forecast, missing tides, a non-full-res chart, or a no-sail wind/SCA/thunderstorm condition triggers a hard-stop that withholds the route.
 
-**3. Chart-based validation.** The full-resolution NOAA Chart 12327 raster (6,074 × 8,000 px) is downloaded and verified (Statue of Liberty tan-patch cross-check). A pixel↔lat/lon transform validates every waypoint and leg for water depth (≥8 ft MLLW), land/shoal avoidance, and security-zone clearance.
+**3. Chart-based validation.** The full-resolution NOAA Chart 12327 raster (6,074 × 8,000 px) is fetched from the GitHub asset repo (see **Static Assets** below) and verified (Statue of Liberty tan-patch cross-check) before use. A pixel↔lat/lon transform validates every waypoint and leg for water depth (≥8 ft MLLW), land/shoal avoidance, and security-zone clearance.
 
 ## Safety Rules Enforced
 
@@ -48,10 +48,25 @@ Data-freshness gates apply (ROBN4 ob ≤2 h; forecast issuance ≤12 h). A stale
 
 The plan shape is chosen per run from wind direction, current, and time budget (compact Liberty loop, rounded loop, northbound Hudson leg, southbound toward the Verrazzano, extended SE-bay route, or a fresh shape), favoring the upwind/up-current leg first so the return is the easier point of sail. Recent plans are checked to avoid repetition.
 
-## Reference Files
+## Static Assets
 
-- `reference-track.gpx` — recorded ~11 nm reference sail through the Upper Bay
-- `siferryschedule.pdf` — Staten Island Ferry timetable (verify against current NYC DOT schedule before relying on it)
+All static assets are fetched at session start from the GitHub repo with `curl -sL` — **not** from project knowledge (which downscales images) and **not** with `web_fetch`. The GitHub raw copies are authoritative.
+
+```bash
+curl -sL https://raw.githubusercontent.com/chenrisius/sailing_plans/main/12327.png            -o /home/claude/12327.png
+curl -sL https://raw.githubusercontent.com/chenrisius/sailing_plans/main/reference-track.gpx  -o /home/claude/reference-track.gpx
+curl -sL https://raw.githubusercontent.com/chenrisius/sailing_plans/main/siferryschedule.pdf  -o /home/claude/siferryschedule.pdf
+```
+
+| Asset | Purpose | Verify before use |
+|---|---|---|
+| `12327.png` | NOAA Chart 12327 raster; base layer for Section D and all waypoint/leg validation | HTTP 200, ~9.9 MB; dimensions exactly **6,074 × 8,000 px**; Statue of Liberty tan cross-check at pixel (3704, 2081). Anything else → chart unavailable (Section D hard-stop). |
+| `reference-track.gpx` | Recorded ~11 nm reference sail through the Upper Bay (Garmin GPSMAP 79sc, Jun 2026) | HTTP 200, non-zero; parses as valid GPX |
+| `siferryschedule.pdf` | Staten Island Ferry timetable | HTTP 200, non-zero; opens under `pdfinfo`. If unavailable, fall back to the embedded departure schedule and flag it. Verify against the current NYC DOT schedule (nyc.gov/dot or 311) before relying on it. |
+
+Notes:
+- The repo also contains `12327_preview.png`, which is **byte-identical** to `12327.png` (not a downscaled preview) — either passes the dimension check, but prefer `12327.png`.
+- A 404, zero-byte, or unparseable return = that file is unavailable. Do not substitute a project-knowledge copy. For the chart this is a Section D hard-stop; for the ferry schedule, fall back to the embedded schedule and flag that the live PDF could not be retrieved.
 
 ## Output Naming
 
